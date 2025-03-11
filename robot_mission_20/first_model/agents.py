@@ -2,9 +2,12 @@
 Groupe 20 - 11/03/2025 - Vogels Arthur, Pierre Glerant
 Module contenant la classe RobotAgent.
 """
+
+# Importation des modules
 import random
 from mesa import Agent
 
+# Définition de la classe RobotAgent
 class RobotAgent(Agent):
     """
     Agent robot qui se déplace selon son inventaire et les directions possibles.
