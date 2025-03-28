@@ -18,8 +18,8 @@ class RobotAgent(Agent):
     - Si l'inventaire est plein (différent de None) : se déplace obligatoirement vers l'Est ("E")
       si cette direction est disponible ; sinon, il ne se déplace pas.
     """
-    def __init__(self, unique_id, model):
-        super().__init__(unique_id, model)
+    def __init__(self,model):
+        super().__init__(model)
         # L'inventaire indique le déchet transporté, None signifie inventaire vide.
         self.inventory = None
 

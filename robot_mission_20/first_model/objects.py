@@ -12,8 +12,8 @@ class WasteAgent(Agent):
     Agent représentant un déchet (waste) dans le modèle.
     Par défaut, la couleur est "green".
     """
-    def __init__(self, unique_id, model, color="green"):
-        super().__init__(unique_id, model)
+    def __init__(self, model, color="green"):
+        super().__init__(model)
         self.color = color
 
     def step(self):
@@ -25,3 +25,13 @@ class WasteAgent(Agent):
 
     def __repr__(self):
         return f"WasteAgent(id={self.unique_id}, color={self.color})"
+    
+class RadioactivityAgent(Agent):
+    def __init__(self, model):
+        super().__init__(model)
+
+        self.radioactivity = 1
+
+class WasteDisposalZone(Agent):
+    def __init__(self, model):
+        super().__init__(model)
