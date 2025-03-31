@@ -9,7 +9,8 @@ from .agents import RobotAgent
 from .objects import Radioactivity, Waste, DisposalZone
 
 def agent_portrayal(agent):
-    if isinstance(agent,Radioactivity):
+    # Définition de l'apparence de chaque agent selon son type et son niveau
+    if isinstance(agent, Radioactivity):
         if agent.get_radioactivity_level() == 1:
             return {
                 "color": "#00FF0080",
@@ -29,7 +30,7 @@ def agent_portrayal(agent):
                 "marker": "s",
             }
     
-    if isinstance(agent,RobotAgent):
+    if isinstance(agent, RobotAgent):
         if agent.get_level() == 1:
             return {
                 "color": "green",
@@ -46,7 +47,7 @@ def agent_portrayal(agent):
                 "size": 100,
             }
     
-    if isinstance(agent,Waste):
+    if isinstance(agent, Waste):
         if agent.get_level() == 1:
             return {
                 "color": "green",
@@ -75,7 +76,7 @@ def agent_portrayal(agent):
                 "marker": "X"
             }
     
-    if isinstance(agent,DisposalZone):
+    if isinstance(agent, DisposalZone):
         return {
             "color": "#80808080",
             "size": 500,
@@ -84,6 +85,7 @@ def agent_portrayal(agent):
 
 @solara.component
 def Page():
+    # Paramètres du modèle configurables via l'interface Solara
     model_params = {
         "n_zone": 1,
         "n_agents": {
@@ -91,19 +93,22 @@ def Page():
             "value": 1,
             "label": "Number of agents:",
             "min": 1,
-            "max":5,
-            "step":1
+            "max": 5,
+            "step": 1
         },
         "n_waste": 1,
         "w": 10,
         "h": 10,
     }
 
+    # Création d'une instance du modèle RobotMission
     mod = RobotMission()
+    # Création du composant de visualisation de la grille
     SpaceGraph = make_space_component(agent_portrayal)
 
+    # Retourne la visualisation Solara pour l'interface utilisateur
     return SolaraViz(
         mod,
         components=[SpaceGraph],
         model_params=model_params
-    ) 
+    )
