@@ -1,3 +1,7 @@
+"""
+Groupe 20 - 11/03/2025 - Vogels Arthur, Pierre Glerant
+"""
+
 from mesa import Agent
 
 class Radioactivity(Agent):

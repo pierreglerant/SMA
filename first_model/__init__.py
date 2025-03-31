@@ -1,3 +1,7 @@
+"""
+Groupe 20 - 11/03/2025 - Vogels Arthur, Pierre Glerant
+"""
+
 from .model import RobotMission
 from .agents import (
     RobotAgent, GreenRobotAgent, YellowRobotAgent, RedRobotAgent

@@ -1,3 +1,7 @@
+"""
+Groupe 20 - 11/03/2025 - Vogels Arthur, Pierre Glerant
+"""
+
 import solara
 from mesa.visualization import SolaraViz, make_space_component
 from .model import RobotMission

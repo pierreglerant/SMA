@@ -1,3 +1,7 @@
+"""
+Groupe 20 - 11/03/2025 - Vogels Arthur, Pierre Glerant
+"""
+
 def get_pos_delta(curr_pos, next_pos):
     return (next_pos[0] - curr_pos[0], next_pos[1] - curr_pos[1])
 
