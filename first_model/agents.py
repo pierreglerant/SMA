@@ -20,8 +20,8 @@ class RobotAgent(Agent):
         self.ready_to_deliver = []  # Déchets traités prêts à être déposés
         self.inventory_full = False # Statut de remplissage de l'inventaire
         self.level = 0              # Niveau de toxicité
-        self.dir_w = 1              # Direction horizontale pour la politique
-        self.dir_h = 1              # Direction verticale pour la politique
+        self.dir_w = random.choice([-1,1])              # Direction horizontale pour la politique
+        self.dir_h = random.choice([-1,1])              # Direction verticale pour la politique
     
     def __random_policy__(self):
         # Politique aléatoire : si un déchet est proche, se déplacer vers lui

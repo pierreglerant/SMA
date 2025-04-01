@@ -91,7 +91,10 @@ class RobotMission(Model):
         if action == "PICK":
             # Ramasser le déchet présent sur la case
             waste = [w for w in self.grid.get_cell_list_contents([agent.pos]) if isinstance(w, Waste)][0]
-            agent.inventory.append(waste)
+            if waste.get_level()<3:
+                agent.inventory.append(waste)
+            else:
+                agent.ready_to_deliver.append(waste)
             self.grid.remove_agent(waste)
         
         elif action == "DROP":
@@ -109,6 +112,14 @@ class RobotMission(Model):
             w = Waste.create_agents(self, 1, level=(waste1.get_level() + 1))
         return w[0]
     
+    def destroy_waste(self):
+        for i in range(self.h):
+            disposal_zone_contents = self.grid.get_cell_list_contents([(self.w-1,i)])
+            for dz_cont in disposal_zone_contents:
+                if isinstance(dz_cont,Waste):
+                    self.grid.remove_agent(dz_cont)
+                    self.agents.remove(dz_cont)
     def step(self):
         # Avancer d'une étape pour tous les agents
+        self.destroy_waste()
         self.agents.shuffle_do("step")
