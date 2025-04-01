@@ -20,5 +20,5 @@ pip install -e .
 
 Pour lancer la visualisation :
 ```bash
-python -m first_model.main
+solara run first_model.main
 ``
