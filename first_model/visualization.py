@@ -88,17 +88,54 @@ def Page():
     # Paramètres du modèle configurables via l'interface Solara
     model_params = {
         "n_zone": 1,
-        "n_agents": {
+        "n_agents_g": {
             "type": "SliderInt",
             "value": 1,
-            "label": "Number of agents:",
+            "label": "Number of green agents:",
             "min": 1,
-            "max": 5,
+            "max": 10,
             "step": 1
         },
-        "n_waste": 1,
-        "w": 10,
-        "h": 10,
+        "n_agents_y": {
+            "type": "SliderInt",
+            "value": 1,
+            "label": "Number of yellow agents:",
+            "min": 1,
+            "max": 10,
+            "step": 1
+        },
+        "n_agents_r": {
+            "type": "SliderInt",
+            "value": 1,
+            "label": "Number of red agents:",
+            "min": 1,
+            "max": 10,
+            "step": 1
+        },
+        "n_waste_g": {
+            "type": "SliderInt",
+            "value": 4,
+            "label": "Number of green wastes:",
+            "min": 4,
+            "max": 16,
+            "step": 4
+        },
+        "n_waste_y": {
+            "type": "SliderInt",
+            "value": 4,
+            "label": "Number of yellow wastes:",
+            "min": 4,
+            "max": 16,
+            "step": 4
+        },
+        "n_waste_r": {
+            "type": "SliderInt",
+            "value": 4,
+            "label": "Number of red wastes:",
+            "min": 4,
+            "max": 16,
+            "step": 4
+        },
     }
 
     # Création d'une instance du modèle RobotMission

@@ -13,12 +13,16 @@ from .utils import get_new_pos
 
 class RobotMission(Model):
     # Modèle
-    def __init__(self, n_agents=1, n_zone=3, n_waste=2, w=16, h=10, seed=None):
+    def __init__(self, n_agents_g=1, n_agents_y = 1, n_agents_r = 1, n_zone=3, n_waste_g=2, n_waste_y=2, n_waste_r=2, w=16, h=10, seed=None):
         super().__init__(seed=seed)
         
-        self.n_agents = n_agents  # Nombre d'agents par couleur
+        self.n_agents_g = n_agents_g  # Nombre d'agents par couleur
+        self.n_agents_y = n_agents_y
+        self.n_agents_r = n_agents_r
         self.n_zone = n_zone      # Nombre de zones de dépôt
-        self.n_waste = n_waste    # Nombre de déchets par niveau
+        self.n_waste_g = n_waste_g    # Nombre de déchets par niveau
+        self.n_waste_y = n_waste_y
+        self.n_waste_r = n_waste_r
         self.w = w              # Nombre de colonnes
         self.h = h              # Nombre de lignes
 
@@ -55,9 +59,9 @@ class RobotMission(Model):
                     i += 1
 
         # Création et placement des Robots de différentes couleurs
-        GreenRobotAgent.create_agents(self, n=self.n_agents)
-        YellowRobotAgent.create_agents(self, n=self.n_agents)
-        RedRobotAgent.create_agents(self, n=self.n_agents)
+        GreenRobotAgent.create_agents(self, n=self.n_agents_g)
+        YellowRobotAgent.create_agents(self, n=self.n_agents_y)
+        RedRobotAgent.create_agents(self, n=self.n_agents_r)
 
         # Placement des agents robots sur la grille selon leur niveau
         for agent in self.agents:
@@ -68,9 +72,9 @@ class RobotMission(Model):
                 self.grid.place_agent(agent, (w_r, h_r))
 
         # Création des déchets pour chaque niveau
-        Waste.create_agents(self, n=self.n_waste, level=1)
-        Waste.create_agents(self, n=self.n_waste, level=2)
-        Waste.create_agents(self, n=self.n_waste, level=3)
+        Waste.create_agents(self, n=self.n_waste_g, level=1)
+        Waste.create_agents(self, n=self.n_waste_y, level=2)
+        Waste.create_agents(self, n=self.n_waste_r, level=3)
 
         # Placement des déchets sur la grille
         for agent in self.agents_by_type[type(Waste(Model()))]:
