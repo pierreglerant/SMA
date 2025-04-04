@@ -10,6 +10,7 @@ from .agents import (
 )
 from .objects import Radioactivity, Waste, DisposalZone
 from .utils import get_new_pos
+from mesa.datacollection import DataCollector
 
 class RobotMission(Model):
     # Modèle
@@ -25,6 +26,7 @@ class RobotMission(Model):
         self.n_waste_r = n_waste_r
         self.w = w              # Nombre de colonnes
         self.h = h              # Nombre de lignes
+        self.datacollector = DataCollector(model_reporters={"Number of wastes":lambda m: len(m.agents_by_type[type(Waste(Model()))])})
 
         # Création de la grille (MultiGrid)
         self.grid = MultiGrid(self.w, self.h, torus=False)
@@ -114,6 +116,8 @@ class RobotMission(Model):
         # Traiter deux déchets de même niveau pour créer un déchet de niveau supérieur
         if waste1.get_level() == waste2.get_level():
             w = Waste.create_agents(self, 1, level=(waste1.get_level() + 1))
+            waste1.remove()
+            waste2.remove()
         return w[0]
     
     def destroy_waste(self):
@@ -122,8 +126,10 @@ class RobotMission(Model):
             for dz_cont in disposal_zone_contents:
                 if isinstance(dz_cont,Waste):
                     self.grid.remove_agent(dz_cont)
-                    self.agents.remove(dz_cont)
+                    dz_cont.remove()
     def step(self):
         # Avancer d'une étape pour tous les agents
-        self.destroy_waste()
-        self.agents.shuffle_do("step")
+        if len(self.agents_by_type[type(Waste(Model()))]):
+            self.destroy_waste()
+            self.agents.shuffle_do("step")
+            self.datacollector.collect(self)
