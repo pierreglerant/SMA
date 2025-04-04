@@ -83,13 +83,12 @@ class RobotAgent(Agent):
                 )
 
     def deliberate(self):
-        # Détermine l'action à réaliser lors de cette étape
+        # Si l'inventaire est plein, traiter les déchets
         if self.inventory_full:
-            # Si l'inventaire est plein, traiter les déchets
             self.process_waste()
 
+        # Si des déchets traités sont prêts, se déplacer vers la droite pour déposer
         if len(self.ready_to_deliver):
-            # Si des déchets traités sont prêts, se déplacer vers la droite pour déposer
             if (1, 0) in self.knowledge.possible_moves:
                 return (1, 0)
             else:
@@ -98,16 +97,23 @@ class RobotAgent(Agent):
         # Recherche de déchets compatibles dans l'environnement
         self.knowledge.close_waste = {}
         for k in self.knowledge.possible_moves:
-            waste_list = [w for w in self.knowledge.close_contents[k] if isinstance(w, Waste) if w.get_level() == self.get_level()]
-            if len(waste_list) > 0:
+            waste_list = [w for w in self.knowledge.close_contents[k] 
+                        if isinstance(w, Waste) and w.get_level() == self.get_level()]
+            if waste_list:
                 self.knowledge.close_waste[k] = waste_list
         
-        # Ramasser le déchet si présent sur la case actuelle et inventaire non plein
-        if (0, 0) in self.knowledge.close_waste.keys() and not self.inventory_full:
-            return "PICK"
+        # Si l'inventaire n'est pas plein, on regarde s'il y a un déchet sur la case courante
+        if not self.inventory_full:
+            if (0, 0) in self.knowledge.close_waste:
+                return "PICK"
+            # Sinon, s'il y a un déchet dans une case adjacente, on se déplace vers cette case
+            elif self.knowledge.close_waste:
+                return random.choice(list(self.knowledge.close_waste.keys()))
         
-        # Appliquer la politique déterminée
+        # Si aucune de ces conditions n'est remplie, appliquer la politique déterministe par défaut
         return self.__policy__()
+
+
 
     def step(self):
         # Exécute une étape : perception, délibération et action
