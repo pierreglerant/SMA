@@ -1,2 +1,3 @@
 venv/*
 *.pyc
+first_model/venv/*

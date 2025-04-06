@@ -22,6 +22,7 @@ class RobotAgent(Agent):
         self.level = 0              # Niveau de toxicité
         self.dir_w = random.choice([-1,1])              # Direction horizontale pour la politique
         self.dir_h = random.choice([-1,1])              # Direction verticale pour la politique
+        self.vertical_moves_count = 0  # Compteur de déplacements verticaux consécutifs
     
     def __random_policy__(self):
         # Politique aléatoire : si un déchet est proche, se déplacer vers lui
@@ -33,13 +34,20 @@ class RobotAgent(Agent):
     def __policy__(self):
         # Politique déterministe basée sur la direction actuelle
         if (self.dir_w, 0) in self.knowledge.possible_moves:
+            self.vertical_moves_count = 0  # Réinitialise le compteur car on bouge horizontalement
             return (self.dir_w, 0)
         if (0, self.dir_h) in self.knowledge.possible_moves:
-            self.dir_w = -self.dir_w  # Inverse la direction horizontale
-            return (0, self.dir_h)
+            if self.vertical_moves_count < 2:  # Si on n'a pas encore fait 2 mouvements verticaux
+                self.vertical_moves_count += 1
+                return (0, self.dir_h)
+            else:  # Si on a fait 2 mouvements verticaux, on inverse la direction horizontale
+                self.dir_w = -self.dir_w
+                self.vertical_moves_count = 0
+                return (self.dir_w, 0)
         # Inverse les directions si les mouvements précédents ne sont pas possibles
         self.dir_h = -self.dir_h
         self.dir_w = -self.dir_w
+        self.vertical_moves_count = 0
         return (self.dir_w, 0)
 
     def get_level(self):
@@ -112,8 +120,6 @@ class RobotAgent(Agent):
         
         # Si aucune de ces conditions n'est remplie, appliquer la politique déterministe par défaut
         return self.__policy__()
-
-
 
     def step(self):
         # Exécute une étape : perception, délibération et action
