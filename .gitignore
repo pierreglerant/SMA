@@ -1,7 +1,3 @@
 venv/*
 *.pyc
-<<<<<<< HEAD
 first_model/venv/*
-=======
-first_model/venv/*
->>>>>>> feature/change-agent-comportement
