@@ -10,6 +10,7 @@ from .model import RobotMission
 from .agents import RobotAgent
 from .objects import Radioactivity, Waste, DisposalZone
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 def agent_portrayal(agent):
     # Définition de l'apparence de chaque agent selon son type et son niveau
@@ -144,7 +145,17 @@ def Page():
     mod = RobotMission()
     # Création du composant de visualisation de la grille
     SpaceGraph = make_space_component(agent_portrayal)
-    WastePlot = make_plot_component("Number of wastes")
+    
+    def post_process(ax):
+        # Configure l'axe des ordonnées pour n'afficher que des entiers positifs
+        ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        ax.set_ylim(bottom=0)
+    
+    # Création du composant de graphique
+    WastePlot = make_plot_component(
+        "Number of wastes",
+        post_process=post_process
+    )
 
     # Retourne la visualisation Solara pour l'interface utilisateur
     return SolaraViz(
