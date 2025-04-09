@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: first_model
-Version: 0.1
-Requires-Dist: mesa>=2.1.1
-Requires-Dist: solara>=1.32.0
-Requires-Dist: numpy>=1.24.0
-Requires-Dist: matplotlib>=3.7.0
-Dynamic: requires-dist
