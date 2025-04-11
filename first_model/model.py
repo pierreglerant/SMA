@@ -14,7 +14,7 @@ from mesa.datacollection import DataCollector
 
 class RobotMission(Model):
     # Modèle
-    def __init__(self, n_agents_g=1, n_agents_y = 1, n_agents_r = 1, n_zone=3, n_waste_g=2, n_waste_y=2, n_waste_r=2, w=16, h=10, seed=None):
+    def __init__(self, n_agents_g=1, n_agents_y = 1, n_agents_r = 1, n_zone=3, n_waste_g=4, n_waste_y=4, n_waste_r=4, w=16, h=10, seed=None):
         super().__init__(seed=seed)
         
         self.n_agents_g = n_agents_g  # Nombre d'agents par couleur
