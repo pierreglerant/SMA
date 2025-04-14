@@ -273,3 +273,46 @@ class RedRobotAgent(RobotAgent):
         # Robot rouge : niveau de toxicité 3
         super().__init__(model)
         self.level = 3
+
+    def deliberate(self):
+        # Phase initiale : se déplacer vers sa zone
+        if self.initial_positioning:
+            move = self.move_to_zone()
+            if move is not None:
+                return move
+
+        # Donner la priorité absolue aux déchets signalés
+        if self.knowledge.going_to_signaled_waste and not self.inventory_full:
+            move = self.move_to_target_waste()
+            if move is not None:
+                return move
+
+        # Si l'inventaire est plein, traiter les déchets
+        if self.inventory_full:
+            self.process_waste()
+
+        # Si des déchets sont prêts à être livrés
+        if len(self.ready_to_deliver):
+            if (1, 0) in self.knowledge.possible_moves:
+                return (1, 0)
+            else:
+                return "DROP"
+        
+        # Recherche de déchets compatibles dans l'environnement
+        self.knowledge.close_waste = {}
+        for k in self.knowledge.possible_moves:
+            if k in self.knowledge.close_contents:
+                waste_list = [w for w in self.knowledge.close_contents[k] 
+                            if isinstance(w, Waste) and w.get_level() == self.get_level()]
+                if waste_list:
+                    self.knowledge.close_waste[k] = waste_list
+        
+        # Ramasser ou se déplacer vers un déchet si l'inventaire n'est pas plein
+        if not self.inventory_full:
+            if (0, 0) in self.knowledge.close_waste:
+                return "PICK"
+            elif self.knowledge.close_waste:
+                return random.choice(list(self.knowledge.close_waste.keys()))
+            
+        # Si aucune action prioritaire n'est possible, utiliser la politique de déplacement standard
+        return self.__policy__()
