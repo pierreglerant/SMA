@@ -65,13 +65,21 @@ class RobotMission(Model):
         YellowRobotAgent.create_agents(self, n=self.n_agents_y)
         RedRobotAgent.create_agents(self, n=self.n_agents_r)
 
+        # Garder une trace des positions déjà occupées
+        used_positions = set()
+
         # Placement des agents robots sur la grille selon leur niveau
         for agent in self.agents:
             if isinstance(agent, RobotAgent):
                 lvl = agent.get_level()
-                w_r = random.randint((lvl - 1) * (w // 3), lvl * (w // 3) - 1)
-                h_r = random.randint(0, h - 1)
-                self.grid.place_agent(agent, (w_r, h_r))
+                while True:
+                    w_r = random.randint((lvl - 1) * (w // 3), lvl * (w // 3) - 1)
+                    h_r = random.randint(0, h - 1)
+                    pos = (w_r, h_r)
+                    if pos not in used_positions:
+                        self.grid.place_agent(agent, pos)
+                        used_positions.add(pos)
+                        break
 
         # Création des déchets pour chaque niveau
         Waste.create_agents(self, n=self.n_waste_g, level=1)
