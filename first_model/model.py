@@ -67,24 +67,46 @@ class RobotMission(Model):
 
         # Garder une trace des positions déjà occupées
         used_positions = set()
+        # Garder une trace des lignes utilisées par niveau
+        used_lines_by_level = {1: set(), 2: set(), 3: set()}
 
-        # Placement des agents robots sur la grille selon leur niveau
+        # Regrouper les robots par niveau
+        robots_by_level = {1: [], 2: [], 3: []}
         for agent in self.agents:
             if isinstance(agent, RobotAgent):
-                lvl = agent.get_level()
+                robots_by_level[agent.get_level()].append(agent)
+
+        # Placer les robots niveau par niveau
+        for level in [1, 2, 3]:
+            robots = robots_by_level[level]
+            n_robots = len(robots)
+            
+            # Vérifier qu'il y a assez de lignes disponibles
+            if n_robots > h:
+                raise ValueError(f"Trop de robots de niveau {level} ({n_robots}) pour la hauteur de la grille ({h})")
+            
+            # Pré-sélectionner des lignes disponibles pour ce niveau
+            available_lines = list(range(h))
+            random.shuffle(available_lines)  # Mélanger les lignes disponibles
+            selected_lines = available_lines[:n_robots]  # Prendre autant de lignes que de robots
+            
+            # Placer chaque robot sur une ligne différente
+            for i, robot in enumerate(robots):
+                h_r = selected_lines[i]  # Utiliser une ligne unique pour chaque robot
                 while True:
-                    w_r = random.randint((lvl - 1) * (w // 3), lvl * (w // 3) - 1)
-                    h_r = random.randint(0, h - 1)
+                    w_r = random.randint((level - 1) * (w // 3), level * (w // 3) - 1)
                     pos = (w_r, h_r)
                     if pos not in used_positions:
-                        self.grid.place_agent(agent, pos)
+                        self.grid.place_agent(robot, pos)
                         used_positions.add(pos)
+                        used_lines_by_level[level].add(h_r)
                         break
 
         # Assigner les zones verticales aux robots
-        robots = [agent for agent in self.agents if isinstance(agent, RobotAgent)]
-        for robot in robots:
-            robot.assign_vertical_zone(robots)
+        for level in [1, 2, 3]:
+            level_robots = robots_by_level[level]
+            for robot in level_robots:
+                robot.assign_vertical_zone(level_robots)
 
         # Création des déchets pour chaque niveau
         Waste.create_agents(self, n=self.n_waste_g, level=1)
