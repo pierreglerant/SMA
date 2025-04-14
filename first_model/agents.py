@@ -23,6 +23,10 @@ class RobotAgent(Agent):
         self.dir_w = random.choice([-1,1])              # Direction horizontale pour la politique
         self.dir_h = random.choice([-1,1])              # Direction verticale pour la politique
         self.vertical_moves_count = 0  # Compteur de déplacements verticaux consécutifs
+        
+        # Nouvelles variables pour la division de zone
+        self.zone_h_min = 0  # Limite basse de la zone du robot
+        self.zone_h_max = 0  # Limite haute de la zone du robot
     
     def __random_policy__(self):
         # Politique aléatoire : si un déchet est proche, se déplacer vers lui
@@ -58,6 +62,43 @@ class RobotAgent(Agent):
         # Transforme deux déchets en un déchet plus toxique prêt à être livré
         self.ready_to_deliver.append(self.model.process_waste(self.inventory.pop(), self.inventory.pop()))
 
+    def assign_vertical_zone(self, robots_same_level):
+        """Assigne une zone verticale au robot en fonction des autres robots de même niveau"""
+        # Trouver tous les robots du même niveau
+        same_level_robots = [r for r in robots_same_level if r.level == self.level]
+        n_robots = len(same_level_robots)
+        
+        # Regrouper les robots par ligne (position y)
+        robots_by_line = {}
+        for robot in same_level_robots:
+            y_pos = robot.pos[1]
+            if y_pos not in robots_by_line:
+                robots_by_line[y_pos] = []
+            robots_by_line[y_pos].append(robot)
+        
+        # Pour chaque ligne, trier les robots par position x
+        for y_pos in robots_by_line:
+            robots_by_line[y_pos].sort(key=lambda r: r.pos[0])
+        
+        # Créer une liste ordonnée finale des robots
+        # Les robots sont d'abord triés par ligne, puis par position x dans chaque ligne
+        ordered_robots = []
+        for y_pos in sorted(robots_by_line.keys()):
+            # Pour chaque ligne, ajouter les robots de gauche à droite
+            ordered_robots.extend(robots_by_line[y_pos])
+        
+        # Trouver l'index de ce robot dans la liste ordonnée
+        my_index = ordered_robots.index(self)
+        
+        # Calculer la taille de chaque division
+        zone_height = self.model.h
+        division_size = zone_height / n_robots
+        
+        # Assigner les limites de la zone
+        # Le robot le plus à gauche de chaque ligne aura la zone la plus haute
+        self.zone_h_min = int(my_index * division_size)
+        self.zone_h_max = int((my_index + 1) * division_size)
+
     def perceive(self):
         # Met à jour la perception de l'environnement par l'agent
         self.inventory_full = len(self.inventory) > 1
@@ -71,20 +112,28 @@ class RobotAgent(Agent):
         # Stocke le contenu des cellules voisines
         self.knowledge.close_contents = {}
         for possible_step in self.knowledge.neighbors:
-            self.knowledge.close_contents[possible_step] = self.model.grid.get_cell_list_contents(
-                [get_new_pos(self.pos, possible_step)]
-            )
+            new_pos = get_new_pos(self.pos, possible_step)
+            # Vérifier si le mouvement reste dans la zone verticale assignée
+            if self.zone_h_min <= new_pos[1] < self.zone_h_max:
+                self.knowledge.close_contents[possible_step] = self.model.grid.get_cell_list_contents([new_pos])
+            else:
+                self.knowledge.close_contents[possible_step] = []
         # Initialise la liste des mouvements possibles
         self.knowledge.possible_moves = list(self.knowledge.neighbors)
+        # Filtrer les mouvements qui sortent de la zone verticale assignée
+        self.knowledge.possible_moves = [
+            move for move in self.knowledge.possible_moves
+            if self.zone_h_min <= get_new_pos(self.pos, move)[1] < self.zone_h_max
+        ]
         # Exclut certaines directions en cas de radioactivité trop élevée
         if (1, 0) in self.knowledge.neighbors:
-            for a in self.knowledge.close_contents[(1, 0)]:
+            for a in self.knowledge.close_contents.get((1, 0), []):
                 if isinstance(a, Radioactivity) and a.get_radioactivity_level() > self.level:
                     self.knowledge.possible_moves = list(
                         set(self.knowledge.possible_moves) - set([(1, 0), (1, -1), (1, 1)])
                     )
         # Exclut certaines directions en cas de radioactivité trop faible
-        for a in self.knowledge.close_contents[(0, 0)]:
+        for a in self.knowledge.close_contents.get((0, 0), []):
             if isinstance(a, Radioactivity) and a.get_radioactivity_level() < self.level:
                 self.knowledge.possible_moves = list(
                     set(self.knowledge.possible_moves) - set([(-1, 0), (-1, -1), (-1, 1)])
