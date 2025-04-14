@@ -7,6 +7,14 @@ import random
 from .utils import get_pos_delta, get_new_pos
 from .objects import Radioactivity, Waste
 
+class Knowledge:
+    """Classe pour stocker les connaissances du robot"""
+    def __init__(self):
+        self.neighbors = []
+        self.close_contents = {}
+        self.possible_moves = []
+        self.close_waste = {}
+
 class RobotAgent(Agent):
     """
     Agent de base pour la simulation de collecte et traitement de déchets.
@@ -15,7 +23,7 @@ class RobotAgent(Agent):
     def __init__(self, model):
         # Initialisation de l'agent et de ses attributs
         super().__init__(model)
-        self.knowledge = lambda: 0  # Stockage des connaissances locales
+        self.knowledge = Knowledge()  # Initialiser avec une instance de Knowledge au lieu de lambda
         self.inventory = []         # Inventaire des déchets collectés
         self.ready_to_deliver = []  # Déchets traités prêts à être déposés
         self.inventory_full = False # Statut de remplissage de l'inventaire
@@ -23,6 +31,12 @@ class RobotAgent(Agent):
         self.dir_w = random.choice([-1,1])              # Direction horizontale pour la politique
         self.dir_h = random.choice([-1,1])              # Direction verticale pour la politique
         self.vertical_moves_count = 0  # Compteur de déplacements verticaux consécutifs
+        
+        # Nouvelles variables pour la division de zone
+        self.zone_h_min = 0  # Limite basse de la zone du robot
+        self.zone_h_max = 0  # Limite haute de la zone du robot
+        self.initial_positioning = True  # Nouveau flag pour la phase initiale
+        self.target_y = 0  # Nouveau attribut pour le centre de la zone attribuée
     
     def __random_policy__(self):
         # Politique aléatoire : si un déchet est proche, se déplacer vers lui
@@ -58,44 +72,109 @@ class RobotAgent(Agent):
         # Transforme deux déchets en un déchet plus toxique prêt à être livré
         self.ready_to_deliver.append(self.model.process_waste(self.inventory.pop(), self.inventory.pop()))
 
+    def assign_vertical_zone(self, robots_same_level):
+        """Assigne une zone verticale au robot en fonction des autres robots de même niveau"""
+        # Trouver tous les robots du même niveau
+        same_level_robots = [r for r in robots_same_level if r.level == self.level]
+        n_robots = len(same_level_robots)
+        
+        # Trier les robots par position y
+        sorted_robots = sorted(same_level_robots, key=lambda r: r.pos[1])
+        
+        # Trouver l'index de ce robot dans la liste triée
+        my_index = sorted_robots.index(self)
+        
+        # Calculer la taille de chaque division
+        zone_height = self.model.h
+        division_size = zone_height / n_robots
+        
+        # Le robot le plus bas aura la zone la plus basse
+        self.zone_h_min = int(my_index * division_size)
+        self.zone_h_max = int((my_index + 1) * division_size)
+        
+        # Calculer le centre de la zone attribuée
+        self.target_y = int((self.zone_h_min + self.zone_h_max) / 2)
+
+    def move_to_zone(self):
+        """Déplace le robot vers le centre de sa zone attribuée"""
+        current_y = self.pos[1]
+        if current_y < self.target_y:
+            return (0, 1)  # Monter
+        elif current_y > self.target_y:
+            return (0, -1)  # Descendre
+        else:
+            self.initial_positioning = False  # Le robot est arrivé dans sa zone
+            return None
+
     def perceive(self):
-        # Met à jour la perception de l'environnement par l'agent
         self.inventory_full = len(self.inventory) > 1
             
-        # Récupère les cellules voisines (incluant la position actuelle)
+        # Si en phase initiale, obtenir tous les mouvements possibles
+        if self.initial_positioning:
+            possible_moves = self.model.grid.get_neighborhood(
+                self.pos, moore=False, include_center=True
+            )
+            self.knowledge.neighbors = [get_pos_delta(self.pos, possible_step) for possible_step in possible_moves]
+            self.knowledge.possible_moves = self.knowledge.neighbors
+            self.knowledge.close_contents = {}  # Initialiser close_contents même en phase initiale
+            for move in self.knowledge.possible_moves:
+                new_pos = get_new_pos(self.pos, move)
+                self.knowledge.close_contents[move] = self.model.grid.get_cell_list_contents([new_pos])
+            return
+
+        # Perception normale une fois dans la zone
         possible_moves = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=True
         )
-        # Calcule les décalages vers les cellules voisines
+        
         self.knowledge.neighbors = [get_pos_delta(self.pos, possible_step) for possible_step in possible_moves]
-        # Stocke le contenu des cellules voisines
+        
+        # Réinitialiser close_contents
         self.knowledge.close_contents = {}
+        
+        # Remplir close_contents pour tous les mouvements possibles
         for possible_step in self.knowledge.neighbors:
-            self.knowledge.close_contents[possible_step] = self.model.grid.get_cell_list_contents(
-                [get_new_pos(self.pos, possible_step)]
-            )
-        # Initialise la liste des mouvements possibles
-        self.knowledge.possible_moves = list(self.knowledge.neighbors)
-        # Exclut certaines directions en cas de radioactivité trop élevée
-        if (1, 0) in self.knowledge.neighbors:
+            new_pos = get_new_pos(self.pos, possible_step)
+            # Vérifier si le mouvement reste dans la zone verticale assignée
+            if self.zone_h_min <= new_pos[1] < self.zone_h_max:
+                self.knowledge.close_contents[possible_step] = self.model.grid.get_cell_list_contents([new_pos])
+
+        # Mettre à jour possible_moves en fonction des positions valides
+        self.knowledge.possible_moves = [
+            move for move in self.knowledge.neighbors
+            if move in self.knowledge.close_contents
+        ]
+
+        # Vérifications de radioactivité
+        if (1, 0) in self.knowledge.close_contents:
             for a in self.knowledge.close_contents[(1, 0)]:
                 if isinstance(a, Radioactivity) and a.get_radioactivity_level() > self.level:
-                    self.knowledge.possible_moves = list(
-                        set(self.knowledge.possible_moves) - set([(1, 0), (1, -1), (1, 1)])
-                    )
-        # Exclut certaines directions en cas de radioactivité trop faible
-        for a in self.knowledge.close_contents[(0, 0)]:
-            if isinstance(a, Radioactivity) and a.get_radioactivity_level() < self.level:
-                self.knowledge.possible_moves = list(
-                    set(self.knowledge.possible_moves) - set([(-1, 0), (-1, -1), (-1, 1)])
-                )
+                    moves_to_remove = [(1, 0), (1, -1), (1, 1)]
+                    self.knowledge.possible_moves = [
+                        move for move in self.knowledge.possible_moves 
+                        if move not in moves_to_remove
+                    ]
+
+        if (0, 0) in self.knowledge.close_contents:
+            for a in self.knowledge.close_contents[(0, 0)]:
+                if isinstance(a, Radioactivity) and a.get_radioactivity_level() < self.level:
+                    moves_to_remove = [(-1, 0), (-1, -1), (-1, 1)]
+                    self.knowledge.possible_moves = [
+                        move for move in self.knowledge.possible_moves 
+                        if move not in moves_to_remove
+                    ]
 
     def deliberate(self):
-        # Si l'inventaire est plein, traiter les déchets
+        # Phase initiale : se déplacer vers sa zone
+        if self.initial_positioning:
+            move = self.move_to_zone()
+            if move is not None:
+                return move
+
+        # Comportement normal après être arrivé dans sa zone
         if self.inventory_full:
             self.process_waste()
 
-        # Si des déchets traités sont prêts, se déplacer vers la droite pour déposer
         if len(self.ready_to_deliver):
             if (1, 0) in self.knowledge.possible_moves:
                 return (1, 0)
@@ -105,20 +184,19 @@ class RobotAgent(Agent):
         # Recherche de déchets compatibles dans l'environnement
         self.knowledge.close_waste = {}
         for k in self.knowledge.possible_moves:
-            waste_list = [w for w in self.knowledge.close_contents[k] 
-                        if isinstance(w, Waste) and w.get_level() == self.get_level()]
-            if waste_list:
-                self.knowledge.close_waste[k] = waste_list
+            # Vérifier si la clé existe dans close_contents
+            if k in self.knowledge.close_contents:
+                waste_list = [w for w in self.knowledge.close_contents[k] 
+                            if isinstance(w, Waste) and w.get_level() == self.get_level()]
+                if waste_list:
+                    self.knowledge.close_waste[k] = waste_list
         
-        # Si l'inventaire n'est pas plein, on regarde s'il y a un déchet sur la case courante
         if not self.inventory_full:
             if (0, 0) in self.knowledge.close_waste:
                 return "PICK"
-            # Sinon, s'il y a un déchet dans une case adjacente, on se déplace vers cette case
             elif self.knowledge.close_waste:
                 return random.choice(list(self.knowledge.close_waste.keys()))
         
-        # Si aucune de ces conditions n'est remplie, appliquer la politique déterministe par défaut
         return self.__policy__()
 
     def step(self):
