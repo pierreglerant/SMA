@@ -117,11 +117,16 @@ class RobotAgent(Agent):
                            and not agent.inventory_full]
         
         if next_level_robots:
-            # Trouver le robot le plus proche qui n'est pas plein
-            closest_robot = min(next_level_robots, 
-                              key=lambda r: abs(r.pos[0] - waste_pos[0]) + abs(r.pos[1] - waste_pos[1]))
-            closest_robot.knowledge.target_waste = waste_pos
-            closest_robot.knowledge.going_to_signaled_waste = True
+            # Trouver le robot qui gère la zone où se trouve le déchet
+            responsible_robot = None
+            for robot in next_level_robots:
+                if robot.zone_h_min <= waste_pos[1] < robot.zone_h_max:
+                    responsible_robot = robot
+                    break
+            
+            if responsible_robot and not responsible_robot.inventory_full:
+                responsible_robot.knowledge.target_waste = waste_pos
+                responsible_robot.knowledge.going_to_signaled_waste = True
 
     def move_to_target_waste(self):
         """Calcule le mouvement vers un déchet signalé"""
