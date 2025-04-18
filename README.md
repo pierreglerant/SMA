@@ -37,9 +37,7 @@ Chaque robot possède :
 2. **Waste** : Déchets radioactifs de différents niveaux (1, 2, 3)
 3. **DisposalZone** : Zone de dépôt pour les déchets traités
 
-## Fonctionnalités Implémentées
-
-### Collecte et Traitement des Déchets
+## Collecte et Traitement des Déchets
 
 - Les robots ne peuvent collecter que des déchets de leur niveau de résistance
 - Les robots peuvent fusionner deux déchets de même niveau pour créer un déchet de niveau supérieur
