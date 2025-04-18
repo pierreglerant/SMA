@@ -6,6 +6,18 @@ from mesa import Agent
 import random
 from .utils import get_pos_delta, get_new_pos
 from .objects import Radioactivity, Waste
+import sys
+import os
+
+# Chemin vers la solution d'interaction
+solution_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Solution_Interaction_Mesa', 'mesa')
+if solution_path not in sys.path:
+    sys.path.append(solution_path)
+
+# Importer les classes de communication
+from communication.agent.CommunicatingAgent import CommunicatingAgent
+from communication.message.Message import Message
+from communication.message.MessagePerformative import MessagePerformative
 
 class Knowledge:
     """Classe pour stocker les connaissances du robot"""
@@ -17,14 +29,22 @@ class Knowledge:
         self.target_waste = None  # Pour stocker la position d'un déchet signalé
         self.going_to_signaled_waste = False  # Pour indiquer si le robot se dirige vers un déchet signalé
 
-class RobotAgent(Agent):
+class RobotAgent(CommunicatingAgent):
     """
     Agent de base pour la simulation de collecte et traitement de déchets.
     """
     
     def __init__(self, model):
         # Initialisation de l'agent et de ses attributs
-        super().__init__(model)
+        # Générer un identifiant unique à partir du compteur du modèle
+        if hasattr(model, 'next_id'):
+            unique_id = f"robot_{model.next_id}"
+            model.next_id += 1  # Incrémenter le compteur
+        else:
+            unique_id = f"robot_{id(self)}"
+            
+        super().__init__(model, unique_id)
+        
         self.knowledge = Knowledge()  # Initialiser avec une instance de Knowledge au lieu de lambda
         self.inventory = []         # Inventaire des déchets collectés
         self.ready_to_deliver = []  # Déchets traités prêts à être déposés
@@ -109,7 +129,7 @@ class RobotAgent(Agent):
             return None
 
     def signal_waste(self, waste_pos):
-        """Signale un déchet aux robots du niveau supérieur"""
+        """Signale un déchet aux robots du niveau supérieur en utilisant le service de messagerie"""
         # Trouver tous les robots du niveau supérieur
         next_level_robots = [agent for agent in self.model.agents 
                            if isinstance(agent, RobotAgent) 
@@ -125,8 +145,24 @@ class RobotAgent(Agent):
                     break
             
             if responsible_robot and not responsible_robot.inventory_full:
-                responsible_robot.knowledge.target_waste = waste_pos
-                responsible_robot.knowledge.going_to_signaled_waste = True
+                # Envoyer un message au robot responsable
+                message_content = {"waste_pos": waste_pos}
+                self.send_message(Message(
+                    self.get_name(),
+                    responsible_robot.get_name(),
+                    MessagePerformative.INFORM_REF,
+                    message_content
+                ))
+
+    def handle_messages(self):
+        """Traite les messages reçus dans la boîte aux lettres"""
+        messages = self.get_new_messages()
+        for message in messages:
+            if message.get_performative() == MessagePerformative.INFORM_REF:
+                content = message.get_content()
+                if isinstance(content, dict) and "waste_pos" in content:
+                    self.knowledge.target_waste = content["waste_pos"]
+                    self.knowledge.going_to_signaled_waste = True
 
     def move_to_target_waste(self):
         """Calcule le mouvement vers un déchet signalé"""
@@ -213,6 +249,9 @@ class RobotAgent(Agent):
                     ]
 
     def deliberate(self):
+        # Traiter d'abord les messages reçus
+        self.handle_messages()
+        
         # Phase initiale : se déplacer vers sa zone
         if self.initial_positioning:
             move = self.move_to_zone()
@@ -280,6 +319,9 @@ class RedRobotAgent(RobotAgent):
         self.level = 3
 
     def deliberate(self):
+        # Traiter d'abord les messages reçus
+        self.handle_messages()
+        
         # Phase initiale : se déplacer vers sa zone
         if self.initial_positioning:
             move = self.move_to_zone()
