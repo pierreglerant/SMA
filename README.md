@@ -77,8 +77,10 @@ Chaque robot agit de manière totalement autonome, sans échange d’information
    - **Zone rouge** : déposent dans l’aire de dépôt  
 3. **Accès** identique à la variante avec communication (vert seule zone, jaune/rouge avec colonne adjacente à l’est)
 
-> **Note :** Il y a des cas où la simulation ne peut pas être terminée.
-Exemple : S'il n'y a plus de déchets verts au sol et que deux robots de la zone verte ont chacun un déchet vert
+> **Note :**  
+> - Il n’y a ni découpage en sous‑zones, ni phase terminale coordonnée ; chaque robot continue seul jusqu’à épuisement des déchets dans sa zone.
+> - Il y a des cas où la simulation ne peut pas être terminée.  
+>   Exemple : S'il n'y a plus de déchets verts au sol et que deux robots de la zone verte ont chacun un déchet vert.  
 
 ## Politique de Déplacement avec communication
 
