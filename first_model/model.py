@@ -11,11 +11,45 @@ from .agents import (
 from .objects import Radioactivity, Waste, DisposalZone
 from .utils import get_new_pos
 from mesa.datacollection import DataCollector
+import sys
+import os
+
+# Chemin vers la solution d'interaction
+solution_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Solution_Interaction_Mesa', 'mesa')
+if solution_path not in sys.path:
+    sys.path.append(solution_path)
+
+# Importer le service de messagerie
+from communication.message.MessageService import MessageService
+from communication.agent.CommunicatingAgent import CommunicatingAgent
+
+# Créer une classe MessageService personnalisée
+class CustomMessageService(MessageService):
+    """Version personnalisée du MessageService qui ne considère que les agents communicants"""
+    
+    def __init__(self, model, instant_delivery=True):
+        """Initialise le service de messagerie personnalisé"""
+        # Pour éviter le singleton, nous devons réinitialiser l'instance
+        MessageService._MessageService__instance = None
+        super().__init__(model, instant_delivery)
+        self.model = model  # Garder une référence publique au modèle
+    
+    def find_agent_from_name(self, agent_name):
+        """Retourne l'agent correspondant au nom d'agent donné.
+        Ne considère que les agents qui sont des instances de CommunicatingAgent.
+        """
+        for agent in self.model.agents:
+            if isinstance(agent, CommunicatingAgent) and agent.get_name() == agent_name:
+                return agent
+        return None
 
 class RobotMission(Model):
     # Modèle
     def __init__(self, n_agents_g=1, n_agents_y = 1, n_agents_r = 1, n_zone=3, n_waste_g=4, n_waste_y=4, n_waste_r=4, w=16, h=10, seed=None):
         super().__init__(seed=seed)
+        
+        # Compteur pour générer des ID uniques
+        self.next_id = 0
         
         self.n_agents_g = n_agents_g  # Nombre d'agents par couleur
         self.n_agents_y = n_agents_y
@@ -27,6 +61,9 @@ class RobotMission(Model):
         self.w = w              # Nombre de colonnes
         self.h = h              # Nombre de lignes
         self.datacollector = DataCollector(model_reporters={"Number of wastes":lambda m: len(m.agents_by_type[type(Waste(Model()))])})
+        
+        # Initialiser le service de messagerie personnalisé
+        self.message_service = CustomMessageService(self, instant_delivery=False)
 
         # Création de la grille (MultiGrid)
         self.grid = MultiGrid(self.w, self.h, torus=False)
@@ -162,7 +199,11 @@ class RobotMission(Model):
                 if isinstance(dz_cont,Waste):
                     self.grid.remove_agent(dz_cont)
                     dz_cont.remove()
+    
     def step(self):
+        # Distribuer les messages en attente
+        self.message_service.dispatch_messages()
+        
         # Avancer d'une étape pour tous les agents
         if len(self.agents_by_type[type(Waste(Model()))]):
             self.destroy_waste()
