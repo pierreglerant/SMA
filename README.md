@@ -39,16 +39,6 @@ Chaque robot possède :
 
 ## Fonctionnalités Implémentées
 
-### Politique de Déplacement
-
-Les robots utilisent une politique de déplacement déterministe avec les caractéristiques suivantes :
-
-Pour l'instant la politique de déplacement est la suivante:
-    - Tous les robots effectuent des serpentins de en alternant le sens bas --> haut puis haut --> bas
-    - Si ils repèrent un déchet sur l'une des 8 cases adjacentes, ils attrapent le déchet au step suivant en allant sur la case en question
-    - Une fois que leur inventaire est plein, les robots se déplacent vers l'ouest. Les robots vert et jaunes déposent le déchet sur la case est adjacente à la frontière ouest de leur zone tandis que les robots rouges déposent leurs déchets dans la zone de dépôt.
-    - Les robots verts n'ont accès qu'à leur zone. Les robots jaunes et rouges ont accès à leur zone + à la colonne adjacente à leur frontière est (cela leur permet de récupérer les déchets déposés par les robots des zones plus à l'est).
-
 ### Collecte et Traitement des Déchets
 
 - Les robots ne peuvent collecter que des déchets de leur niveau de résistance
@@ -75,6 +65,63 @@ Pour lancer la simulation, exécutez le fichier `main.py`. Une interface web s'o
 solara run first_model.main
 ```
 
+## Politique de Déplacement sans communication
+
+Chaque robot agit de manière totalement autonome, sans échange d’informations, et couvre sa zone entière.
+
+**Étape 1 : Balayage de la zone**  
+- Chaque robot parcourt **l’intégralité** de sa zone en serpentins (alternance bas→haut / haut→bas).  
+
+**Étape 2 : Ramassage et dépôt**  
+1. **Ramassage** : dès qu’un déchet est détecté sur une case adjacente, le robot s’y rend pour le saisir
+2. **Dépôt** : inventaire plein → direction ouest
+   - **Zones verte & jaune** : déposent à l’est de la limite ouest. 
+   - **Zone rouge** : déposent dans l’aire de dépôt  
+3. **Accès** identique à la variante avec communication (vert seule zone, jaune/rouge avec colonne adjacente à l’est)
+
+> **Note :** Il y a des cas où la simulation ne peut pas être terminée.
+Exemple : S'il n'y a plus de déchets verts au sol et que deux robots de la zone verte ont chacun un déchet vert
+
+## Politique de Déplacement avec communication
+
+Les robots suivent une stratégie déterministe en trois phases :
+
+**Étape 1 : Répartition en sous‑zones**  
+- Chaque zone est découpée en sous‑zones de largeur égale (écart maximal : une ligne).  
+- Chaque robot est affecté à l’une de ces sous‑zones.
+
+**Étape 2 : Parcours en serpentins et collecte**  
+1. **Mouvement en serpentins**  
+   - Dans sa sous‑zone, chaque robot balaie les lignes en serpentins (alternance bas→haut puis haut→bas).  
+2. **Ramassage**  
+   - Si un déchet apparaît sur une case adjacente à sa position (et dans sa sous‑zone), le robot s’y rend au pas suivant pour le saisir.  
+3. **Dépôt**  
+   - Dès que son inventaire est plein, le robot se dirige vers l’ouest :  
+     - **Zones verte et jaune** : dépose le déchet sur la case située juste à l’est de la frontière ouest de leur zone.  
+     - **Zone rouge** : transporte son déchet jusqu’à l’aire de dépôt.  
+4. **Accès aux zones**  
+   - **Vert** : uniquement à sa propre zone.  
+   - **Jaune et rouge** : à leur zone plus la colonne immédiatement à l’est de leur frontière (pour récupérer les déchets largués par les zones plus à l’est).
+
+**Étape 3 : Phase terminale de chaque zone**  
+Lorsque, pour une zone donnée, aucun robot n’a collecté de déchet pendant  
+\[
+\frac{l \times L}{n_{\text{robots\_zone}}} + 1
+\]  
+tours ET que la ou les zones plus à l’est ont déjà déclenché leur phase finale, on passe à la procédure suivante :
+
+- **Rassemblement**  
+  1. Tous les robots se rejoignent sur la ligne médiane de la zone.
+  2. Ils déposent leur déchet et s’immobilisent, sauf un seul.
+- **Collecte finale**
+  - Le robot restant arpente seul la ligne médiane et y termine la collecte des déchets.
+
+Cette séquence s’applique successivement à la **zone verte**, puis à la **zone jaune**, et enfin à la **zone rouge**.  
+
+## Comparaison des résultats sans ou avec communication
+
+TODO
+
 ## Auteurs
 
 - Vogels Arthur
@@ -82,4 +129,4 @@ solara run first_model.main
 
 ## Date
 
-11/04/2025
+20/04/2025
