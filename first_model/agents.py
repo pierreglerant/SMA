@@ -14,6 +14,8 @@ class Knowledge:
         self.close_contents = {}
         self.possible_moves = []
         self.close_waste = {}
+        self.target_waste = None  # Pour stocker la position d'un déchet signalé
+        self.going_to_signaled_waste = False  # Pour indiquer si le robot se dirige vers un déchet signalé
 
 class RobotAgent(Agent):
     """
@@ -106,6 +108,52 @@ class RobotAgent(Agent):
             self.initial_positioning = False  # Le robot est arrivé dans sa zone
             return None
 
+    def signal_waste(self, waste_pos):
+        """Signale un déchet aux robots du niveau supérieur"""
+        # Trouver tous les robots du niveau supérieur
+        next_level_robots = [agent for agent in self.model.agents 
+                           if isinstance(agent, RobotAgent) 
+                           and agent.level == self.level + 1
+                           and not agent.inventory_full]
+        
+        if next_level_robots:
+            # Trouver le robot qui gère la zone où se trouve le déchet
+            responsible_robot = None
+            for robot in next_level_robots:
+                if robot.zone_h_min <= waste_pos[1] < robot.zone_h_max:
+                    responsible_robot = robot
+                    break
+            
+            if responsible_robot and not responsible_robot.inventory_full:
+                responsible_robot.knowledge.target_waste = waste_pos
+                responsible_robot.knowledge.going_to_signaled_waste = True
+
+    def move_to_target_waste(self):
+        """Calcule le mouvement vers un déchet signalé"""
+        if not self.knowledge.target_waste:
+            return None
+
+        # Calculer la direction pour atteindre le déchet
+        dx = self.knowledge.target_waste[0] - self.pos[0]
+        dy = self.knowledge.target_waste[1] - self.pos[1]
+        
+        # Choisir le mouvement prioritaire (horizontal ou vertical)
+        if abs(dx) > 0:
+            move_x = (1 if dx > 0 else -1, 0)
+            if move_x in self.knowledge.possible_moves:
+                return move_x
+        if abs(dy) > 0:
+            move_y = (0, 1 if dy > 0 else -1)
+            if move_y in self.knowledge.possible_moves:
+                return move_y
+
+        # Si on est arrivé au déchet
+        if dx == 0 and dy == 0:
+            self.knowledge.going_to_signaled_waste = False
+            self.knowledge.target_waste = None
+            
+        return None
+
     def perceive(self):
         self.inventory_full = len(self.inventory) > 1
             
@@ -171,7 +219,13 @@ class RobotAgent(Agent):
             if move is not None:
                 return move
 
-        # Comportement normal après être arrivé dans sa zone
+        # Si on a un déchet signalé à récupérer
+        if self.knowledge.going_to_signaled_waste:
+            move = self.move_to_target_waste()
+            if move is not None:
+                return move
+
+        # Comportement normal
         if self.inventory_full:
             self.process_waste()
 
@@ -179,12 +233,14 @@ class RobotAgent(Agent):
             if (1, 0) in self.knowledge.possible_moves:
                 return (1, 0)
             else:
+                # Signaler le déchet aux robots du niveau supérieur avant de le déposer
+                if self.level < 3:  # Seulement pour les robots verts et jaunes
+                    self.signal_waste(self.pos)
                 return "DROP"
         
         # Recherche de déchets compatibles dans l'environnement
         self.knowledge.close_waste = {}
         for k in self.knowledge.possible_moves:
-            # Vérifier si la clé existe dans close_contents
             if k in self.knowledge.close_contents:
                 waste_list = [w for w in self.knowledge.close_contents[k] 
                             if isinstance(w, Waste) and w.get_level() == self.get_level()]
@@ -222,3 +278,46 @@ class RedRobotAgent(RobotAgent):
         # Robot rouge : niveau de toxicité 3
         super().__init__(model)
         self.level = 3
+
+    def deliberate(self):
+        # Phase initiale : se déplacer vers sa zone
+        if self.initial_positioning:
+            move = self.move_to_zone()
+            if move is not None:
+                return move
+
+        # Donner la priorité absolue aux déchets signalés
+        if self.knowledge.going_to_signaled_waste and not self.inventory_full:
+            move = self.move_to_target_waste()
+            if move is not None:
+                return move
+
+        # Si l'inventaire est plein, traiter les déchets
+        if self.inventory_full:
+            self.process_waste()
+
+        # Si des déchets sont prêts à être livrés
+        if len(self.ready_to_deliver):
+            if (1, 0) in self.knowledge.possible_moves:
+                return (1, 0)
+            else:
+                return "DROP"
+        
+        # Recherche de déchets compatibles dans l'environnement
+        self.knowledge.close_waste = {}
+        for k in self.knowledge.possible_moves:
+            if k in self.knowledge.close_contents:
+                waste_list = [w for w in self.knowledge.close_contents[k] 
+                            if isinstance(w, Waste) and w.get_level() == self.get_level()]
+                if waste_list:
+                    self.knowledge.close_waste[k] = waste_list
+        
+        # Ramasser ou se déplacer vers un déchet si l'inventaire n'est pas plein
+        if not self.inventory_full:
+            if (0, 0) in self.knowledge.close_waste:
+                return "PICK"
+            elif self.knowledge.close_waste:
+                return random.choice(list(self.knowledge.close_waste.keys()))
+            
+        # Si aucune action prioritaire n'est possible, utiliser la politique de déplacement standard
+        return self.__policy__()
