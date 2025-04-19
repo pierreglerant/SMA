@@ -140,10 +140,6 @@ class RobotMission(Model):
                         break
 
         # Assigner les zones verticales aux robots
-        for level in [1, 2, 3]:
-            level_robots = robots_by_level[level]
-            for robot in level_robots:
-                robot.assign_vertical_zone(level_robots)
 
         # Création des déchets pour chaque niveau
         Waste.create_agents(self, n=self.n_waste_g, level=1)
