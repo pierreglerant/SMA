@@ -133,7 +133,6 @@ Le second avantage de la communication est qu’elle permet d’attribuer des so
 Comme l’algorithme sans communication ne permet pas toujours aux robots de déposer tous leurs déchets dans la zone de dépôt, on ne le comparera pas en nombre total de steps pour vider la zone de dépôt.  
 Les algorithmes seront plutôt comparés sur le nombre de steps nécessaires pour qu’il n’y ait plus de déchet au sol, afin de mesurer l’impact de la répartition des robots dans des sous‑zones grâce à la communication.
 
-
 1e situation :
 
 ## Auteurs
