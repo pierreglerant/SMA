@@ -119,7 +119,7 @@ Chaque robot va commencer par une phase d'initialisation durant laquelle il va:
 - Se déplacer vers le centre de sa sous-zone
 
 <figure>
-  <img src="figs/policy.png" alt="Illustration de la politique de déplacement" width="400">
+  <img src="figs/init_comm.png" alt="Illustration de la politique de déplacement" width="700">
   <figcaption><em>Figure 3 – Schéma de communication pour déterminer la sous-zone.</em></figcaption>
 </figure>
 
