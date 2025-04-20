@@ -80,7 +80,7 @@ Chaque robot agit de manière totalement autonome, sans échange d’information
 > **Note :**  
 > - Il n’y a ni découpage en sous‑zones, ni phase terminale coordonnée ; chaque robot continue seul jusqu’à épuisement des déchets dans sa zone.
 > - Il y a des cas où la simulation ne peut pas être terminée.  
->   Exemple : S'il n'y a plus de déchets verts au sol et que deux robots de la zone verte ont chacun un déchet vert.  
+>   Exemple : S'il n'y a plus de déchets verts au sol et que deux robots de la zone verte ont chacun un déchet vert dans leur inventaire.  
 
 ## Politique de Déplacement avec communication
 

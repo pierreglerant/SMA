@@ -354,13 +354,6 @@ class RobotAgent(CommunicatingAgent):
             if self.level == 1:
                 self.broadcast_done()
                 self.is_done = True
-            elif self.level == 2:
-                if self.lower_done == self.model.n_agents_g and not len(self.knowledge.target_waste):
-                    self.broadcast_done()
-                    self.is_done = True
-            else:
-                if self.lower_done == self.model.n_agents_y and not len(self.knowledge.target_waste):
-                    self.is_done = True
 
     def deliberate(self): 
 
@@ -368,6 +361,7 @@ class RobotAgent(CommunicatingAgent):
             return (0,0)
         
         self.check_if_done()
+        
         # Traiter d'abord les messages reçus
         self.handle_messages()
         
@@ -378,7 +372,7 @@ class RobotAgent(CommunicatingAgent):
                 return move
 
         # Si on a un déchet signalé à récupérer
-        if np.sum(self.knowledge.potential_wastes) == 0 and self.knowledge.going_to_signaled_waste and not self.inventory_full and not self.ready_to_deliver:
+        if self.knowledge.going_to_signaled_waste and not self.inventory_full and not self.ready_to_deliver:
             move = self.move_to_target_waste()
             if move is not None and move != (0,0):
                 return move
@@ -402,7 +396,7 @@ class RobotAgent(CommunicatingAgent):
                 return (0,0)
 
         # Comportement normal
-        if self.inventory_full:
+        if len(self.inventory)>1:
             self.process_waste()
 
         if len(self.ready_to_deliver):
@@ -435,10 +429,11 @@ class RobotAgent(CommunicatingAgent):
                 return "PICK"
             elif self.knowledge.close_waste:
                 return random.choice(list(self.knowledge.close_waste.keys()))
-        
+
         return self.__policy__()
 
     def step(self):
+        print(f"{self.get_name()} - {len(self.inventory)}")
         if self.step_num == 0:
             self.broadcast_position()
             self.step_num += 1
@@ -485,7 +480,7 @@ class RedRobotAgent(RobotAgent):
                 return move
 
         # Si l'inventaire est plein, traiter les déchets
-        if self.inventory_full:
+        if len(self.inventory)>0:
             self.process_waste()
 
         # Si des déchets sont prêts à être livrés
