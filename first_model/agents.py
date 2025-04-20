@@ -29,7 +29,7 @@ class Knowledge:
         self.close_contents = {}
         self.possible_moves = []
         self.close_waste = {}
-        self.target_waste = None  # Pour stocker la position d'un déchet signalé
+        self.target_waste = []  # Pour stocker la position d'un déchet signalé
         self.potential_wastes = None
         self.going_to_signaled_waste = False  # Pour indiquer si le robot se dirige vers un déchet signalé
         self.zone_is_clean = False
@@ -218,7 +218,7 @@ class RobotAgent(CommunicatingAgent):
                 if isinstance(content, dict) and "waste_pos" in content:
                     waste_pos = content["waste_pos"]
                     if waste_pos[1]>= self.zone_h_min and waste_pos[1] < self.zone_h_max:
-                        self.knowledge.target_waste = content["waste_pos"]
+                        self.knowledge.target_waste.append(content["waste_pos"])
                         self.knowledge.going_to_signaled_waste = True
                 if "DONE" in content:
                     self.lower_done += 1
@@ -240,15 +240,16 @@ class RobotAgent(CommunicatingAgent):
 
     def move_to_target_waste(self):
         """Calcule le mouvement vers un déchet signalé"""
-        if not self.knowledge.target_waste:
+        if len(self.knowledge.target_waste) == 0:
             return None
 
         if self.inventory_full:
             return None
         
+        targ = self.knowledge.target_waste[0]
         # Calculer la direction pour atteindre le déchet
-        dx = self.knowledge.target_waste[0] - self.pos[0]
-        dy = self.knowledge.target_waste[1] - self.pos[1]
+        dx = targ[0] - self.pos[0]
+        dy = targ[1] - self.pos[1]
         
         # Choisir le mouvement prioritaire (horizontal ou vertical)
         if abs(dx) > 0:
@@ -263,7 +264,7 @@ class RobotAgent(CommunicatingAgent):
         # Si on est arrivé au déchet
         if dx == 0 and dy == 0:
             self.knowledge.going_to_signaled_waste = False
-            self.knowledge.target_waste = None
+            self.knowledge.target_waste.pop(0)
             
         return None
     
@@ -280,6 +281,9 @@ class RobotAgent(CommunicatingAgent):
     def perceive(self):
         
         self.inventory_full = len(self.inventory) > 1
+
+        if self.pos in self.knowledge.target_waste:
+            self.knowledge.target_waste.remove(self.pos)
             
         # Si en phase initiale, obtenir tous les mouvements possibles
         if self.initial_positioning:
@@ -351,11 +355,11 @@ class RobotAgent(CommunicatingAgent):
                 self.broadcast_done()
                 self.is_done = True
             elif self.level == 2:
-                if self.lower_done == self.model.n_agents_g:
+                if self.lower_done == self.model.n_agents_g and not len(self.knowledge.target_waste):
                     self.broadcast_done()
                     self.is_done = True
             else:
-                if self.lower_done == self.model.n_agents_y:
+                if self.lower_done == self.model.n_agents_y and not len(self.knowledge.target_waste):
                     self.is_done = True
 
     def deliberate(self): 
