@@ -154,7 +154,7 @@ Chaque robot possède dans sa mémoire une carte appelée "potential_wastes". Au
       - Si le robot a accepté l'échange, il se rend aux coordonnées de l'échange pour récolter le déchet.
 
 <figure>
-  <img src="figs/comm_exchange.png" alt="Illustration de la politique de déplacement" width="400">
+  <img src="figs/comm_exchange.png" alt="Illustration de la politique de déplacement" width="750">
   <figcaption><em>Figure 4 – Schéma de communication liée aux échanges.</em></figcaption>
 </figure>
 
