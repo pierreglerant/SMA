@@ -45,7 +45,7 @@ class CustomMessageService(MessageService):
 
 class RobotMission(Model):
     # Modèle
-    def __init__(self, n_agents_g=1, n_agents_y = 1, n_agents_r = 1, n_zone=3, n_waste_g=4, n_waste_y=4, n_waste_r=4, w=16, h=10, seed=None):
+    def __init__(self, n_agents_g=2, n_agents_y = 2, n_agents_r = 2, n_zone=3, n_waste_g=4, n_waste_y=4, n_waste_r=4, w=16, h=10, seed=None):
         super().__init__(seed=seed)
         
         # Compteur pour générer des ID uniques
@@ -174,6 +174,10 @@ class RobotMission(Model):
         elif action == "DROP":
             # Déposer le déchet traité
             waste = agent.ready_to_deliver.pop()
+            self.grid.place_agent(waste, agent.pos)
+        
+        elif action == "TRADE":
+            waste = agent.inventory.pop()
             self.grid.place_agent(waste, agent.pos)
 
         else:

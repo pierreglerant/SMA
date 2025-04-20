@@ -32,6 +32,8 @@ class Knowledge:
         self.target_waste = None  # Pour stocker la position d'un déchet signalé
         self.potential_wastes = None
         self.going_to_signaled_waste = False  # Pour indiquer si le robot se dirige vers un déchet signalé
+        self.zone_is_clean = False
+
 class RobotAgent(CommunicatingAgent):
     """
     Agent de base pour la simulation de collecte et traitement de déchets.
@@ -61,6 +63,11 @@ class RobotAgent(CommunicatingAgent):
         self.pos_list = []
 
         self.trade_position = None
+        self.drop_for_trade = False
+        self.proposed_trade = False
+
+        self.is_done = False
+        self.lower_done = 0
     
     def __random_policy__(self):
         # Politique aléatoire : si un déchet est proche, se déplacer vers lui
@@ -168,7 +175,7 @@ class RobotAgent(CommunicatingAgent):
     def propose_trade(self):
         same_level_robots = [agent for agent in self.model.agents 
                            if isinstance(agent, RobotAgent) 
-                           and agent.level == self.level]
+                           and agent.level == self.level and agent is not self]
         
         for r in same_level_robots:
             message_content = {"Trade": self.pos}
@@ -178,14 +185,29 @@ class RobotAgent(CommunicatingAgent):
                 MessagePerformative.PROPOSE,
                 message_content
             ))
-    def propose_trade(self, receiver, trade_pos):
+        self.proposed_trade = True
+    def accept_trade(self, receiver, trade_pos):
         message_content = {"Trade": trade_pos}
         self.send_message(Message(
             self.get_name(),
-            receiver.get_name(),
+            receiver,
             MessagePerformative.ACCEPT,
             message_content
         ))
+
+    def broadcast_done(self):
+        next_level_robots = [agent for agent in self.model.agents 
+                           if isinstance(agent, RobotAgent) 
+                           and agent.level == self.level+1 and agent is not self]
+        
+        for r in next_level_robots:
+            self.send_message(Message(
+                self.get_name(),
+                r.get_name(),
+                MessagePerformative.INFORM_REF,
+                "DONE"
+            ))
+
         
     def handle_messages(self):
         """Traite les messages reçus dans la boîte aux lettres"""
@@ -198,20 +220,23 @@ class RobotAgent(CommunicatingAgent):
                     if waste_pos[1]>= self.zone_h_min and waste_pos[1] < self.zone_h_max:
                         self.knowledge.target_waste = content["waste_pos"]
                         self.knowledge.going_to_signaled_waste = True
+                if "DONE" in content:
+                    self.lower_done += 1
                 
             if message.get_performative() == MessagePerformative.PROPOSE:
-                if np.sum(self.knowledge.potential_wastes) == 0 and len(self.inventory) > 0:
+                if np.sum(self.knowledge.potential_wastes) == 0 and len(self.inventory) > 0 and not self.trade_position:
                     content = message.get_content()
                     offer_pos = content["Trade"]
-                    trade_pos = (offer_pos[0]+self.pos[0])//2, (offer_pos[1]+self.pos[1])//2
+                    #trade_pos = (offer_pos[0]+self.pos[0])//2, (offer_pos[1]+self.pos[1])//2
+                    trade_pos = offer_pos
                     self.trade_position = trade_pos
-                    self.propose_trade(message.get_exp(), trade_pos)
+                    self.drop_for_trade = True
+                    self.accept_trade(message.get_exp(), trade_pos)
 
             if message.get_performative() == MessagePerformative.ACCEPT:
                 if len(self.inventory) > 0 and self.trade_position is None:
                     content = message.get_content()
                     self.trade_position = content["Trade"]
-
 
     def move_to_target_waste(self):
         """Calcule le mouvement vers un déchet signalé"""
@@ -241,8 +266,19 @@ class RobotAgent(CommunicatingAgent):
             self.knowledge.target_waste = None
             
         return None
+    
+    def move_to_trade_position(self):
+
+        if not self.trade_position:
+            return None
+        
+        dx = self.trade_position[0] - self.pos[0]
+        dy = self.trade_position[1] - self.pos[1]
+
+        return np.sign(dx), np.sign(dy)
 
     def perceive(self):
+        
         self.inventory_full = len(self.inventory) > 1
             
         # Si en phase initiale, obtenir tous les mouvements possibles
@@ -272,7 +308,7 @@ class RobotAgent(CommunicatingAgent):
         for possible_step in self.knowledge.neighbors:
             new_pos = get_new_pos(self.pos, possible_step)
             # Vérifier si le mouvement reste dans la zone verticale assignée
-            if self.zone_h_min <= new_pos[1] < self.zone_h_max:
+            if (self.zone_h_min <= new_pos[1] < self.zone_h_max) or possible_step == (0,0):
                 self.knowledge.close_contents[possible_step] = self.model.grid.get_cell_list_contents([new_pos])
 
         # Mettre à jour possible_moves en fonction des positions valides
@@ -304,14 +340,30 @@ class RobotAgent(CommunicatingAgent):
             if k in self.knowledge.close_contents:
                 waste_list = [w for w in self.knowledge.close_contents[k] 
                             if isinstance(w, Waste) and w.get_level() == self.get_level()]
-                if not len(waste_list):
+                if not len(waste_list) and np.sum(self.knowledge.potential_wastes) > 0:
                     x_no_waste = self.pos[0]+k[0]-(self.level-1)*(self.model.w//3)
                     if x_no_waste < self.model.w//3 and x_no_waste >= 0:
                         self.knowledge.potential_wastes[x_no_waste, self.pos[1]-self.zone_h_min+k[1]] = 0
 
+    def check_if_done(self):
+        if np.sum(self.knowledge.potential_wastes) == 0 and not len(self.inventory) and not len(self.ready_to_deliver):
+            if self.level == 1:
+                self.broadcast_done()
+                self.is_done = True
+            elif self.level == 2:
+                if self.lower_done == self.model.n_agents_g:
+                    self.broadcast_done()
+                    self.is_done = True
+            else:
+                if self.lower_done == self.model.n_agents_y:
+                    self.is_done = True
 
+    def deliberate(self): 
 
-    def deliberate(self):
+        if self.is_done:
+            return (0,0)
+        
+        self.check_if_done()
         # Traiter d'abord les messages reçus
         self.handle_messages()
         
@@ -321,12 +373,29 @@ class RobotAgent(CommunicatingAgent):
             if move is not None:
                 return move
 
-
         # Si on a un déchet signalé à récupérer
-        if self.knowledge.going_to_signaled_waste and not self.inventory_full and not self.ready_to_deliver:
+        if np.sum(self.knowledge.potential_wastes) == 0 and self.knowledge.going_to_signaled_waste and not self.inventory_full and not self.ready_to_deliver:
             move = self.move_to_target_waste()
-            if move is not None:
+            if move is not None and move != (0,0):
                 return move
+            
+        if (not self.knowledge.going_to_signaled_waste) and self.trade_position:
+            if self.pos[0] != self.trade_position[0] or self.pos[1] != self.trade_position[1]:
+                return self.move_to_trade_position()
+            
+            if self.drop_for_trade:
+                self.trade_position = None
+                self.drop_for_trade = False
+                self.broadcast_done()
+                self.is_done = True
+                return "TRADE"
+            
+            if any([isinstance(x,Waste) for x in self.knowledge.close_contents[(0,0)]]):
+                self.trade_position = None
+                print("Picked trash")
+                return "PICK"
+            else:
+                return (0,0)
 
         # Comportement normal
         if self.inventory_full:
@@ -339,11 +408,15 @@ class RobotAgent(CommunicatingAgent):
                 # Signaler le déchet aux robots du niveau supérieur avant de le déposer
                 if self.level < 3:  # Seulement pour les robots verts et jaunes
                     self.signal_waste(self.pos)
+                print("Dropping a waste")
                 return "DROP"
-        if not np.sum(self.knowledge.potential_wastes):
+        
+        if not np.sum(self.knowledge.potential_wastes) and not self.trade_position:
             if len(self.inventory) > 0:
                 self.propose_trade()
             return (0,0)
+        
+        
         # Recherche de déchets compatibles dans l'environnement
         self.knowledge.close_waste = {}
         for k in self.knowledge.possible_moves:
@@ -354,6 +427,7 @@ class RobotAgent(CommunicatingAgent):
                     self.knowledge.close_waste[k] = waste_list
         if not self.inventory_full:
             if (0, 0) in self.knowledge.close_waste:
+                print("picking a waste")
                 return "PICK"
             elif self.knowledge.close_waste:
                 return random.choice(list(self.knowledge.close_waste.keys()))
@@ -401,8 +475,7 @@ class RedRobotAgent(RobotAgent):
             if move is not None:
                 return move
 
-        # Donner la priorité absolue aux déchets signalés
-        if self.knowledge.going_to_signaled_waste and not self.inventory_full and not self.ready_to_deliver:
+        if np.sum(self.knowledge.potential_wastes) == 0 and self.knowledge.going_to_signaled_waste and not self.inventory_full and not self.ready_to_deliver:
             move = self.move_to_target_waste()
             if move is not None:
                 return move
