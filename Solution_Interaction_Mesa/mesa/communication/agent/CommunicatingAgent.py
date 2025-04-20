@@ -5,7 +5,6 @@ from mesa import Agent
 from communication.mailbox.Mailbox import Mailbox
 from communication.message.MessageService import MessageService
 
-
 class CommunicatingAgent(Agent):
     """CommunicatingAgent class.
     Class implementing communicating agent in a generalized manner.
