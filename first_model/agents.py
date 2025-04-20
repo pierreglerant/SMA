@@ -215,16 +215,22 @@ class RobotAgent(CommunicatingAgent):
         for message in messages:
             if message.get_performative() == MessagePerformative.INFORM_REF:
                 content = message.get_content()
+                # On gère le partage de position
                 if isinstance(content, dict) and "waste_pos" in content:
                     waste_pos = content["waste_pos"]
+                    # Si le déchet est déposé dans notre sous-zone, on s'en occupe
                     if waste_pos[1]>= self.zone_h_min and waste_pos[1] < self.zone_h_max:
+                        # On ajoute le déchet à la liste des déchets à récupérer
                         self.knowledge.target_waste.append(content["waste_pos"])
                         self.knowledge.going_to_signaled_waste = True
+
+                # Si on recoit un message DONE, un des robots de niveau inférieur a fini son travail
                 if "DONE" in content:
                     self.lower_done += 1
                 
             if message.get_performative() == MessagePerformative.PROPOSE:
-                if np.sum(self.knowledge.potential_wastes) == 0 and len(self.inventory) > 0 and not self.trade_position:
+                # Si on nous propose un trade, on accepte seulement si plus de déchets potentiels, on a un item dans l'inventaire et on a pas déjà un trade de prévu
+                if np.sum(self.knowledge.potential_wastes) == 0 and len(self.inventory) == 1 and not self.trade_position:
                     content = message.get_content()
                     offer_pos = content["Trade"]
                     #trade_pos = (offer_pos[0]+self.pos[0])//2, (offer_pos[1]+self.pos[1])//2
@@ -233,6 +239,7 @@ class RobotAgent(CommunicatingAgent):
                     self.drop_for_trade = True
                     self.accept_trade(message.get_exp(), trade_pos)
 
+            # Si le trade a été accepté, on store la coordonnée du trade
             if message.get_performative() == MessagePerformative.ACCEPT:
                 if len(self.inventory) > 0 and self.trade_position is None:
                     content = message.get_content()
@@ -263,8 +270,9 @@ class RobotAgent(CommunicatingAgent):
 
         # Si on est arrivé au déchet
         if dx == 0 and dy == 0:
-            self.knowledge.going_to_signaled_waste = False
             self.knowledge.target_waste.pop(0)
+            if len(self.knowledge.target_waste) == 0:
+                self.knowledge.going_to_signaled_waste = False
             
         return None
     
@@ -281,9 +289,6 @@ class RobotAgent(CommunicatingAgent):
     def perceive(self):
         
         self.inventory_full = len(self.inventory) > 1
-
-        if self.pos in self.knowledge.target_waste:
-            self.knowledge.target_waste.remove(self.pos)
             
         # Si en phase initiale, obtenir tous les mouvements possibles
         if self.initial_positioning:
@@ -350,6 +355,7 @@ class RobotAgent(CommunicatingAgent):
                         self.knowledge.potential_wastes[x_no_waste, self.pos[1]-self.zone_h_min+k[1]] = 0
 
     def check_if_done(self):
+        # Le vert a fini son travail si il a tout exploré, n'a plus rien dans son inventaire et n'a plus rien à livrer
         if np.sum(self.knowledge.potential_wastes) == 0 and not len(self.inventory) and not len(self.ready_to_deliver):
             if self.level == 1:
                 self.broadcast_done()
@@ -363,6 +369,7 @@ class RobotAgent(CommunicatingAgent):
         self.check_if_done()
         
         # Traiter d'abord les messages reçus
+        # Mets à jour: waste_pos, trade_pos, going_to_a_trade
         self.handle_messages()
         
         # Phase initiale : se déplacer vers sa zone
@@ -409,7 +416,7 @@ class RobotAgent(CommunicatingAgent):
                 print("Dropping a waste")
                 return "DROP"
         
-        if not np.sum(self.knowledge.potential_wastes) and not self.trade_position:
+        if not np.sum(self.knowledge.potential_wastes) and not self.trade_position and not any([isinstance(x,Waste) for x in self.knowledge.close_contents[(0,0)]]):
             if len(self.inventory) > 0:
                 self.propose_trade()
             return (0,0)
