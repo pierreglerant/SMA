@@ -161,7 +161,7 @@ Chaque robot possède dans sa mémoire une carte appelée "potential_wastes". Au
 
 ## Comparaison des résultats sans ou avec communication
 
-La version finale de l’**algorithme sans communication** correspond au Commit `9b129b0b4ac270c953deed16670d8f74af5ef6cb` (“fix: Corriger le bug d'initialisation”). La version finale de l’**algorithme avec communication** correspond au dernier commit de la branche master.
+La version finale de l’**algorithme sans communication** correspond à la branche part1-no-comm. La version finale de l’**algorithme avec communication** correspond au dernier commit de la branche master.
 
 Le premier **avantage** de l’algorithme avec communication est de résoudre certaines situations qui empêchent les robots de finir leur tâche.
 
