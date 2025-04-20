@@ -43,6 +43,20 @@ Chaque robot possède :
 - Les robots peuvent fusionner deux déchets de même niveau pour créer un déchet de niveau supérieur
 - Les robots verts fusionnent deux déchets vert pour en faire un jaune avant de le déposer, les robots jaunes fusionnent deux déchets jaunes pour en faire un rouge et les rouges déposent directement chaque déchet rouge qu'ils trouvent 
 
+## Hypothèses
+
+On considère que chaque robot connait les informations suivante:
+
+- Sa position absolue sur la carte
+- Les dimensions de la carte
+- Un identifiant permettant de contacter les robots de son niveau
+- Un identifiant permettant de contacter les robots du niveau supérieur au sien
+- Un capteur permettant d'identifier le contenu des cases adjacentes (voisinage de Moore)
+
+## Critère
+
+L'objectif de cce projet sera d'obtenir une solution permettant d'optimiser le nombre de steps nécessaire afin de vider l'entièreté de la grille de ses déchets.
+
 ## Visualisation
 
 La simulation est visualisée à l'aide de Solara, qui fournit :
@@ -68,7 +82,11 @@ solara run first_model.main
 Chaque robot agit de manière totalement autonome, sans échange d’informations, et couvre sa zone entière.
 
 **Étape 1 : Balayage de la zone**  
-- Chaque robot parcourt **l’intégralité** de sa zone en serpentins (alternance bas→haut / haut→bas).  
+- Chaque robot parcourt **l’intégralité** de sa zone en serpentins (alternance bas→haut / haut→bas). 
+<figure>
+  <img src="figs/policy.png" alt="Illustration de la politique de déplacement" width="400">
+  <figcaption><em>Figure 1 – Illustration de la politique de déplacement.</em></figcaption>
+</figure> 
 
 **Étape 2 : Ramassage et dépôt**  
 1. **Ramassage** : dès qu’un déchet est détecté sur une case adjacente, le robot s’y rend pour le saisir
