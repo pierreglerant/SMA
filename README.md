@@ -189,21 +189,28 @@ Les algorithmes seront plutôt comparés sur le nombre de steps nécessaires pou
 | Avec communication |  25   |  30   |  26   |  25   |  26   |  26,4   |
 | Sans communication |  37   |  50   |  30   |  39   |  32   |  37,6   |
 
-**3e situation : 3 robots par zone, 8 déchets par zone**
+**3e situation : 3 robots par zone, 8 déchets par zone, petite carte (15x10)**
 
 | Méthode            | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Moyenne |
 |--------------------|:-----:|:-----:|:-----:|:-----:|:-----:|:-------:|
 | Avec communication |  56   |  50   |  47   |  48   |  50   |  50,2   |
 | Sans communication |  60   |  69   |  71   |  50   |  69   |  63,8   |
 
-**4e situation : 4 robots par zone, 8 déchets par zone**
+**4e situation : 4 robots par zone, 8 déchets par zone, petite carte (15x10)**
 
 | Méthode            | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Moyenne |
 |--------------------|:-----:|:-----:|:-----:|:-----:|:-----:|:-------:|
 | Avec communication |  23   |  43   |  36   |  40   |  39   |  36,2   |
 | Sans communication |  37   |  48   |  43   |  51   |  43   |  44,4   |
 
-On constate que dans **toutes** les configurations, l’algorithme **avec communication** atteint systématiquement un nombre de steps **inférieur** à celui **sans communication**, avec un gain moyen particulièrement marqué dès que le nombre de robots ou de déchets augmente. Cela confirme l’efficacité de la répartition en sous‑zones et de la coordination entre robots.
+**5e situation : 3 robots par zone, 8 déchets par zone, grande carte (30x30) [NF = Non Fini]**
+
+| Méthode            |  Run 1 |  Run 2 |  Run 3 | Moyenne |
+|--------------------|:------:|:------:|:------:|:-------:|
+| Avec communication |  185   |  175   |  197   |  185.7  |
+| Sans communication |  240 NF|  321 NF|  307 NF|  289.3  |
+
+On constate que dans **toutes** les configurations, l’algorithme **avec communication** atteint systématiquement un nombre de steps **inférieur** à celui **sans communication**, avec un gain moyen particulièrement marqué dès que le nombre de robots ou de déchets augmente. Cela confirme l’efficacité de la répartition en sous‑zones et de la coordination entre robots. De plus, on remarque que sur la grande carte la méthode sans communication ne parvient pas à terminer le travail. En effet, sans communication pour permettre les échanges, on se retrouve coincé dans une situation où les seuls déchets présents dans l'environnement sont dans l'inventaire non rempli de robots.
 
 ## Auteurs
 
