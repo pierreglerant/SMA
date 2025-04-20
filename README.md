@@ -119,7 +119,6 @@ tours ET que la ou les zones plus à l’est ont déjà déclenché leur phase f
 Cette séquence s’applique successivement à la **zone verte**, puis à la **zone jaune**, et enfin à la **zone rouge**.
 
 ## Comparaison des résultats sans ou avec communication
-## Comparaison des résultats sans ou avec communication
 
 La version finale de l’**algorithme sans communication** correspond au Commit `9b129b0b4ac270c953deed16670d8f74af5ef6cb` (“fix: Corriger le bug d'initialisation”). La version finale de l’**algorithme avec communication** correspond au dernier commit de la branche master.
 
@@ -133,7 +132,37 @@ Le second avantage de la communication est qu’elle permet d’attribuer des so
 Comme l’algorithme sans communication ne permet pas toujours aux robots de déposer tous leurs déchets dans la zone de dépôt, on ne le comparera pas en nombre total de steps pour vider la zone de dépôt.  
 Les algorithmes seront plutôt comparés sur le nombre de steps nécessaires pour qu’il n’y ait plus de déchet au sol, afin de mesurer l’impact de la répartition des robots dans des sous‑zones grâce à la communication.
 
-1e situation :
+**Résultats par situation**
+
+**1ère situation : 2 robots par zone, 4 déchets par zone**
+
+| Méthode            | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Moyenne |
+|--------------------|:-----:|:-----:|:-----:|:-----:|:-----:|:-------:|
+| Avec communication |  60   |  57   |  53   |  70   |  47   |  57,4   |
+| Sans communication |  75   |  60   |  60   |  55   |  50   |  60,0   |
+
+**2e situation : 3 robots par zone, 4 déchets par zone**
+
+| Méthode            | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Moyenne |
+|--------------------|:-----:|:-----:|:-----:|:-----:|:-----:|:-------:|
+| Avec communication |  25   |  30   |  26   |  25   |  26   |  26,4   |
+| Sans communication |  37   |  50   |  30   |  39   |  32   |  37,6   |
+
+**3e situation : 3 robots par zone, 8 déchets par zone**
+
+| Méthode            | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Moyenne |
+|--------------------|:-----:|:-----:|:-----:|:-----:|:-----:|:-------:|
+| Avec communication |  56   |  50   |  47   |  48   |  50   |  50,2   |
+| Sans communication |  60   |  69   |  71   |  50   |  69   |  63,8   |
+
+**4e situation : 4 robots par zone, 8 déchets par zone**
+
+| Méthode            | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Moyenne |
+|--------------------|:-----:|:-----:|:-----:|:-----:|:-----:|:-------:|
+| Avec communication |  23   |  43   |  36   |  40   |  39   |  36,2   |
+| Sans communication |  37   |  48   |  43   |  51   |  43   |  44,4   |
+
+On constate que dans **toutes** les configurations, l’algorithme **avec communication** atteint systématiquement un nombre de steps **inférieur** à celui **sans communication**, avec un gain moyen particulièrement marqué dès que le nombre de robots ou de déchets augmente. Cela confirme l’efficacité de la répartition en sous‑zones et de la coordination entre robots.
 
 ## Auteurs
 
