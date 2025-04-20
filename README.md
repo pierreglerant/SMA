@@ -4,6 +4,11 @@
 
 Ce projet est une simulation multi-agents qui modélise un environnement où des robots collectent et traitent des déchets radioactifs. L'environnement est divisé en zones de radioactivi té de différents niveaux, et les robots doivent collecter des déchets compatibles avec leur niveau de résistance, les fusionner pour créer des déchets plus toxiques, et les déposer dans une zone de dépôt.
 
+<figure>
+  <img src="figs/environnement.png" alt="Illustration de la politique de déplacement" width="400">
+  <figcaption><em>Figure 1 – Environnement du projet.</em></figcaption>
+</figure> 
+
 ## Structure du Projet
 
 Le projet est organisé en plusieurs fichiers python :
@@ -85,15 +90,16 @@ Chaque robot agit de manière totalement autonome, sans échange d’information
 - Chaque robot parcourt **l’intégralité** de sa zone en serpentins (alternance bas→haut / haut→bas). 
 <figure>
   <img src="figs/policy.png" alt="Illustration de la politique de déplacement" width="400">
-  <figcaption><em>Figure 1 – Illustration de la politique de déplacement.</em></figcaption>
+  <figcaption><em>Figure 2 – Illustration de la politique de déplacement.</em></figcaption>
 </figure> 
 
 **Étape 2 : Ramassage et dépôt**  
 1. **Ramassage** : dès qu’un déchet est détecté sur une case adjacente, le robot s’y rend pour le saisir
-2. **Dépôt** : inventaire plein → direction ouest
-   - **Zones verte & jaune** : déposent à l’est de la limite ouest. 
+2. **Conversion des déchets** : Une fois l'inventaire plein, les déchets sont traités et transformés en un déchet de niveau supérieur
+3. **Dépôt**: Une fois le déchet traité, le robot se déplace jusqu'à la limite de sa zone afin de le déposer.
+   - **Zones verte & jaune** : déposent à ouest de la limite est. 
    - **Zone rouge** : déposent dans l’aire de dépôt  
-3. **Accès** identique à la variante avec communication (vert seule zone, jaune/rouge avec colonne adjacente à l’est)
+4. **Prise en charge par le robot de la zone supérieur**: Les robots de niveau n+1 ont accès à la colonne la plus à l'Est de la zone n de sorte à pouvoir récupérer les déchets traités par les robots de niveau inférieur. 
 
 > **Note :**  
 > - Il n’y a ni découpage en sous‑zones, ni phase terminale coordonnée ; chaque robot continue seul jusqu’à épuisement des déchets dans sa zone.
@@ -104,7 +110,8 @@ Chaque robot agit de manière totalement autonome, sans échange d’information
 
 Les robots suivent une stratégie déterministe en trois phases :
 
-**Étape 1 : Répartition en sous‑zones**  
+**Étape 1 : Répartition en sous‑zones**
+On va découper chaque zone en sous-zones de largeur égales. On a donc $z_i \in [0,w[ \times [i*h//n_{robots},(i+1)*h//n_{robots}[$
 - Chaque zone est découpée en sous‑zones de largeur égale (écart maximal : une ligne).  
 - Chaque robot est affecté à l’une de ces sous‑zones.
 
