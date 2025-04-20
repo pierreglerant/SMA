@@ -5,7 +5,7 @@
 Ce projet est une simulation multi-agents qui modélise un environnement où des robots collectent et traitent des déchets radioactifs. L'environnement est divisé en zones de radioactivi té de différents niveaux, et les robots doivent collecter des déchets compatibles avec leur niveau de résistance, les fusionner pour créer des déchets plus toxiques, et les déposer dans une zone de dépôt.
 
 <figure>
-  <img src="figs/environnement.png" alt="Illustration de la politique de déplacement" width="400">
+  <img src="figs/carte.png" alt="Illustration de la politique de déplacement" width="400">
   <figcaption><em>Figure 1 – Environnement du projet.</em></figcaption>
 </figure> 
 
@@ -111,37 +111,53 @@ Chaque robot agit de manière totalement autonome, sans échange d’information
 Les robots suivent une stratégie déterministe en trois phases :
 
 **Étape 1 : Répartition en sous‑zones**
-On va découper chaque zone en sous-zones de largeur égales. On a donc $z_i \in [0,w[ \times [i*h//n_{robots},(i+1)*h//n_{robots}[$
-- Chaque zone est découpée en sous‑zones de largeur égale (écart maximal : une ligne).  
-- Chaque robot est affecté à l’une de ces sous‑zones.
+On va découper chaque zone en sous-zones de largeur égales. On a donc $z_i \in [0,w[ \times [i*h/n_{robots},(i+1)*h/n_{robots}[$
+Chaque robot va commencer par une phase d'initialisation durant laquelle il va:
+- Broadcast sa position à tous les robots de sa zone
+- Attendre de recevoir la position de chaque autre robot
+- Déterminer sa sous-zone en triant les coordonnées des autres robots
+- Se déplacer vers le centre de sa sous-zone
+
+<figure>
+  <img src="figs/policy.png" alt="Illustration de la politique de déplacement" width="400">
+  <figcaption><em>Figure 3 – Schéma de communication pour déterminer la sous-zone.</em></figcaption>
+</figure>
+
+L'idée du partage en sous-zone est de minimiser le recouvrement entre les robots afin de leur permettre d'explorer l'entièreté de la zone en un temps minimal. Cette méthode permet de diviser par le nombre de robot le temps requis pour explorer l'entièreté d'une zone dans le pire des cas.
 
 **Étape 2 : Parcours en serpentins et collecte**  
 1. **Mouvement en serpentins**  
-   - Dans sa sous‑zone, chaque robot balaie les lignes en serpentins (alternance bas→haut puis haut→bas).  
+   - Dans sa sous‑zone, chaque robot balaie les lignes en serpentins (alternance bas→haut puis haut→bas). 
 2. **Ramassage**  
    - Si un déchet apparaît sur une case adjacente à sa position (et dans sa sous‑zone), le robot s’y rend au pas suivant pour le saisir.  
 3. **Dépôt**  
    - Dès que son inventaire est plein, le robot se dirige vers l’ouest :  
-     - **Zones verte et jaune** : dépose le déchet sur la case située juste à l’est de la frontière ouest de leur zone.  
+     - **Zones verte et jaune** : dépose le déchet sur la case située juste à l'ouest de la frontière est de leur zone et envoie cette position aux robots de la zone supérieur
      - **Zone rouge** : transporte son déchet jusqu’à l’aire de dépôt.  
 4. **Accès aux zones**  
    - **Vert** : uniquement à sa propre zone.  
-   - **Jaune et rouge** : à leur zone plus la colonne immédiatement à l’est de leur frontière (pour récupérer les déchets largués par les zones plus à l’est).
-
+   - **Jaune et rouge** : à leur zone plus la colonne immédiatement à ouest de leur frontière (pour récupérer les déchets largués par les zones plus à l'ouest).
+   Lorsque les robots ont terminé la récolte dans leur propre sous-zone, ils vont chercher les déchets laissés par les robots de niveau inférieur à la frontière de leur propre sous-zone.
 **Étape 3 : Phase terminale de chaque zone**  
-Lorsque, pour une zone donnée, aucun robot n’a collecté de déchet pendant  
-\[
-\frac{l \times L}{n_{\text{robots\_zone}}} + 1
-\]  
-tours ET que la ou les zones plus à l’est ont déjà déclenché leur phase finale, on passe à la procédure suivante :
+Chaque robot possède dans sa mémoire une carte appelée "potential_wastes". Au début de l'exploration, chaque case de la sous zone d'un robot peut potentiellement contenir un déchet. A mesure que le robot explore sa sous zone, il met à jour sa carte en excluant la possibilité de trouver des déchets là où il a pu observer une case vide. Une fois l'entièreté de sa sous-zone explorée, le robot entre dans sa phase terminale:
 
-- **Rassemblement**  
-  1. Tous les robots se rejoignent sur la ligne médiane de la zone.
-  2. Ils déposent leur déchet et s’immobilisent, sauf un seul.
-- **Collecte finale**
-  - Le robot restant arpente seul la ligne médiane et y termine la collecte des déchets.
+- Si son inventaire est vide, qu'il n'a aucun déchet à aller chercher dans une zone inférieure et que les robots de la zone inférieur ont fini leur mission, le robot à fini sa mission et il s'arrête
+- Si son inventaire est rempli et que les robots de la zone inférieur ont fini leur mission, ilentame le protocole d'échange:
+   1. Check sa boite aux lettres pour savoir si un robot de sa zone a déjà proposé un échange:
+      - si oui:
+         Envoyer un message à ce robot pour accepter l'échange
+      - sinon:
+         Broadcast un message de proposition d'échange à tous les robots de sa zone, en donnant sa position actuelle comme position d'échange.
+   
+   2. 
+      - Si le robot a initié l'échange et reçu un message d'acceptation: il dépose son déchet au sol
+      - Si le robot a accepté l'échange, il se rend aux coordonnées de l'échange pour récolter le déchet.
 
-Cette séquence s’applique successivement à la **zone verte**, puis à la **zone jaune**, et enfin à la **zone rouge**.
+<figure>
+  <img src="figs/comm_exchange.png" alt="Illustration de la politique de déplacement" width="400">
+  <figcaption><em>Figure 4 – Schéma de communication liée aux échanges.</em></figcaption>
+</figure>
+
 
 ## Comparaison des résultats sans ou avec communication
 
