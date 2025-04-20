@@ -50,7 +50,7 @@ Chaque robot possède :
 
 ## Hypothèses
 
-On considère que chaque robot connait les informations suivante:
+On considère que chaque robot connait les informations suivantes:
 
 - Sa position absolue sur la carte
 - Les dimensions de la carte
@@ -60,7 +60,7 @@ On considère que chaque robot connait les informations suivante:
 
 ## Critère
 
-L'objectif de cce projet sera d'obtenir une solution permettant d'optimiser le nombre de steps nécessaire afin de vider l'entièreté de la grille de ses déchets.
+L'objectif de ce projet sera d'obtenir une solution permettant d'optimiser le nombre de steps nécessaires afin de vider l'entièreté de la grille de ses déchets.
 
 ## Visualisation
 
